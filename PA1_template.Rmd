@@ -1,25 +1,189 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Reproducible Research Peer Assignment 1"
+output: html_document
 ---
 
+Please note that my opinion of appropriate tab width differs from the instructor's.  I use a tab width of 2.  I can see that a width of 2 versus 4 is debatable.  I would not consider a tab width of 8.  My opinion is that this width becomes a distraction.
 
-## Loading and preprocessing the data
+### Loading and preprocessing the data
+
+```{r echo=TRUE}
+setwd(file.path(Sys.getenv("HOME"), 
+  "Dropbox/Private/data science/Reproducible Research/project1"))
+library(lubridate)
+library(dplyr)
+# Load the data
+actmon <- read.csv("activity.csv")
+# Convert the date column to actual dates
+actmon$date <- ymd(actmon$date)
+```
+
+### What is mean total number of steps taken per day?
+
+Note that all records with `NA` values were excluded for everything in this section.  At least one day had nothing but `NA` values and such days are therefore not shown.
+
+```{r echo=TRUE}
+library(xtable)
+actmon_complete <- actmon[complete.cases(actmon),]
+actmon_complete <- group_by(actmon_complete, date)
+actmon_total_steps <- summarize(actmon_complete, total=sum(steps))
+hist(actmon_total_steps$total, main="Histogram of Steps per Day", 
+  xlab="Steps per Day")
+```
+
+#### Mean Steps per Day Table
+
+```{r echo=TRUE, results="asis"}
+actmon_mean_steps <- summarize(actmon_complete, mean_steps=mean(steps))
+actmon_mean_steps$date = as.character(actmon_mean_steps$date)
+print(xtable(as.data.frame(actmon_mean_steps)),type="html")
+```
+
+#### Median Steps per Day Table
+
+```{r echo=TRUE, results="asis"}
+actmon_median_steps <- summarize(actmon_complete, median_steps=median(steps))
+actmon_median_steps$date = as.character(actmon_median_steps$date)
+print(xtable(as.data.frame(actmon_median_steps)),type="html")
+```
+
+### What Is the Average Daily Activity Pattern?
+
+```{r echo=TRUE}
+actmon_complete <- actmon[complete.cases(actmon),]
+actmon_interval <- group_by(actmon_complete, interval)
+actmon_interval <- summarize(actmon_interval, mean_steps=mean(steps))
+actmon_interval$rowid <- as.integer(row.names(actmon_interval))
+actmon_interval$labels <- sub("(\\d\\d)(\\d\\d)", "\\1:\\2", 
+  formatC(actmon_interval$interval, width=4, format="d", flag="0"))
+plot(actmon_interval$rowid, actmon_interval$mean_steps, type="l", 
+  xlab="5-Minute Interval", ylab="Mean Steps", 
+  main="Average Daily Activity Pattern", xaxt="n")
+tics <- seq(1, 288, by=12)
+axis(side=1,at=actmon_interval[tics,]$rowid,
+  labels=actmon_interval[tics,]$labels)
+```
+
+### Imputing Missing Values
+
+#### 1. Total number of rows with `NA`
+
+```{r}
+rows_with_na <- nrow(actmon) - nrow(actmon_complete)
+```
+
+The total number of rows with at least one `NA` value is `r rows_with_na`.
+
+#### 2. Devise a strategy for filling in all of the missing values
+
+My first step is to show that the `date` and `interval` fields do not contain any `NA`s.
+
+```{r}
+any(is.na(actmon$interval)) # returns FALSE
+any(is.na(actmon$date)) # returns false
+```
+
+So I am concerned only with the one remaining column, `steps`.
+
+My approach is to use the average across all days for a given five-minute interval for any case where `steps` is `NA`.  The following prints the first ten rows from this list of step averages by interval.
+
+#### 3. Create a new dataset that is equal to the original dataset but with the missing values filled in.
+
+This is `actmon_imputed`.
+
+```{r}
+actmon_means <- actmon %>% 
+  group_by(interval) %>%
+  summarize(interval_mean=mean(steps, na.rm=TRUE))
+actmon_imputed <- actmon
+actmon_imputed$interval_mean <- actmon_means$interval_mean
+actmon_imputed$steps <- ifelse(is.na(actmon_imputed$steps), actmon_imputed$interval_mean, actmon_imputed$steps)
+actmon_imputed$interval_mean <- NULL
+str(actmon_imputed)
+summary(actmon_imputed)
+
+```
+
+The number of cases in `actmon_imputed` is `r nrow(actmon_imputed)`.  The number of complete cases in `actmon_imputed` is `r length(complete.cases(actmon_imputed))`.  These two numbers must be equal.
+
+#### 4. Make a histogram of the total number of steps taken each data and calculate and report the mean and median total number of steps taken each day.
+
+```{r}
+actmon_imputed_total <- group_by(actmon_imputed, date) %>%
+  summarize(total=sum(steps))
+hist(actmon_imputed_total$total, main="Histogram of Steps per Day", xlab="Steps per Day\n(Using imputed values)")
+```
+
+#### Mean Steps per Day Table (using imputed values)
+
+```{r echo=TRUE, results="asis"}
+actmon_mean_steps <- group_by(actmon_imputed, date) %>%
+  summarize(mean_steps=mean(steps))
+actmon_mean_steps$date <- as.character(actmon_mean_steps$date)
+print(xtable(as.data.frame(actmon_mean_steps)),type="html")
+```
+
+#### Median Steps per Day Table (using imputed values)
+
+```{r echo=TRUE, results="asis"}
+actmon_median_steps <- group_by(actmon_imputed, date) %>%
+  summarize(median_steps=median(steps))
+actmon_median_steps$date <- as.character(actmon_median_steps$date)
+print(xtable(as.data.frame(actmon_median_steps)),type="html")
+```
 
 
+*Do these values differ from the from the estimates from the first part of the assignment?  What is the impact of imputing missing data on the estimates of the total daily number of steps?*
 
-## What is mean total number of steps taken per day?
+The histogram looks nearly identical, which is to be expected, since only a few days had any `NA` values.  Those days were:
 
+```{r}
+unique(actmon[!complete.cases(actmon),]$date)
+```
 
+There were a total of `r length(unique(actmon$date))` dates in the dataset.  Since the mean and median for only a few of these days changed, the histogram is almost the same.
 
-## What is the average daily activity pattern?
+The tables for means and medians are also mostly the same, except that the new tables now have entries for the dates that contained `NA` in the `steps` column.  On each of these dates, *all* of the values for `steps` was `NA`.  Therefore, these dates were excluded entirely from the tables.  In the tables using imputed data, we have all of the dates.
 
+The entries in the median table for these additional dates stand out from all the other entries which have a median of 0.  This is because, on all dates for which we have `steps` value, the most frequent value appearing in the five-minute intervals was 0.  The sample data was apparently not drawn from people who sleepwalk all night!  But using the imputed values for the dates that originally lacked data, there are far fewer zeroes.  Here is the data for 2012-10-01 for example (this is a list of the values for `steps` from first to last interval).
 
+```{r}
+actmon_imputed[actmon_imputed$date==ymd("2012-10-01"),]$steps
+```
 
-## Imputing missing values
+There are only a handful of zeroes.  On all of the other days, there would generally be at least one case where steps were recorded in an interval; somebody got up at 2:15 AM to go to the bathroom, for example.  So the mean number of steps for that interval was above zero.  Since that was used as the imputed number of steps for the days that lacked data, they had very few if any intervals with a value of 0.  The result was that each new day appearing in the median table had a non-zero table, in stark contrast to all of the other days.
 
+This leads to the conclusion that, at least for the purpose of calculating median number of steps, the naive approach I took of imputing missing data was probably not a good one.
 
+### Are There Differences in Activity Patterns Between Weekdays and Weekends?
 
-## Are there differences in activity patterns between weekdays and weekends?
+To summarize what the panel plot shows below:
+
+* There is a sharp rise in activity on weekday mornings between 5 and 6; activity rises much more slowly and gradually on weekends
+* Overall activity is higher on weekends than weekdays
+* There are discernible weekday peaks of activity around noon, 2 PM and 5 PM
+* There are lower but discernible weekend peaks around noon, 4 PM, and 8 PM
+
+This seems to fit with intuition.  People usually start their days later on the weekends, and they tend to go out for activities on weekend evenings more often than weekdays.  We could probably, however, look at Fridays and Saturdays compared to other days in the week and find an even higher level of activity in the evenings.
+
+```{r}
+library(ggplot2)
+# Create a new factor variable with two levels, "weekday" and "weekend"
+actmon_mean_steps_interval <- actmon_imputed
+actmon_mean_steps_interval$day <- factor(x=ifelse(weekdays(ymd(actmon_mean_steps_interval$date)) %in% 
+  c("Saturday","Sunday"),"weekend","weekday"), levels=c("weekend","weekday"))
+# Group by both interval and weekday/weekend, get means
+actmon_mean_steps_interval <- actmon_mean_steps_interval %>% 
+  group_by(interval, day) %>%
+  summarize(mean_steps=mean(steps))
+# Add labels for each interval
+actmon_mean_steps_interval$labels <- sub("(\\d\\d)(\\d\\d)", "\\1:\\2", 
+  formatC(actmon_mean_steps_interval$interval, width=4, format="d", flag="0"))
+# Add row numbers, needed for plotting
+actmon_mean_steps_interval$rowid <- as.integer(row.names(actmon_mean_steps_interval))
+tics <- seq(1, 576, by=48)
+# And make the plot
+ggplot(actmon_mean_steps_interval, aes(x=rowid, y=mean_steps)) + geom_line() + facet_wrap(~day,ncol=1) +
+  xlab("Interval") + ylab("Mean Num. Steps") +
+  scale_x_discrete(breaks=tics,labels=actmon_mean_steps_interval[tics,]$labels)
+```
