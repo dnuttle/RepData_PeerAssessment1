@@ -45,7 +45,7 @@ print(xtable(as.data.frame(actmon_mean_steps)),type="html")
 ```
 
 <!-- html table generated in R 3.1.1 by xtable 1.7-4 package -->
-<!-- Sun Dec 14 12:50:50 2014 -->
+<!-- Sun Dec 14 13:02:36 2014 -->
 <table border=1>
 <tr> <th>  </th> <th> date </th> <th> mean_steps </th>  </tr>
   <tr> <td align="right"> 1 </td> <td> 2012-10-02 </td> <td align="right"> 0.44 </td> </tr>
@@ -113,7 +113,7 @@ print(xtable(as.data.frame(actmon_median_steps)),type="html")
 ```
 
 <!-- html table generated in R 3.1.1 by xtable 1.7-4 package -->
-<!-- Sun Dec 14 12:50:50 2014 -->
+<!-- Sun Dec 14 13:02:36 2014 -->
 <table border=1>
 <tr> <th>  </th> <th> date </th> <th> median_steps </th>  </tr>
   <tr> <td align="right"> 1 </td> <td> 2012-10-02 </td> <td align="right"> 0.00 </td> </tr>
@@ -173,6 +173,8 @@ print(xtable(as.data.frame(actmon_median_steps)),type="html")
 
 ### What Is the Average Daily Activity Pattern?
 
+#### 1. Make a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days
+
 
 ```r
 actmon_complete <- actmon[complete.cases(actmon),]
@@ -190,6 +192,20 @@ axis(side=1,at=actmon_interval[tics,]$rowid,
 ```
 
 ![plot of chunk unnamed-chunk-5](figure/unnamed-chunk-5.png) 
+
+#### Which 5-minute interval, on average across all days in the dataset, contains the maximum number of steps?
+
+
+```r
+actmon_interval[actmon_interval$mean_steps == max(actmon_interval$mean_steps),]
+```
+
+```
+## Source: local data frame [1 x 4]
+## 
+##   interval mean_steps rowid labels
+## 1      835      206.2   104  08:35
+```
 
 ### Imputing Missing Values
 
@@ -275,7 +291,7 @@ actmon_imputed_total <- group_by(actmon_imputed, date) %>%
 hist(actmon_imputed_total$total, main="Histogram of Steps per Day", xlab="Steps per Day\n(Using imputed values)")
 ```
 
-![plot of chunk unnamed-chunk-9](figure/unnamed-chunk-9.png) 
+![plot of chunk unnamed-chunk-10](figure/unnamed-chunk-10.png) 
 
 #### Mean Steps per Day Table (using imputed values)
 
@@ -288,7 +304,7 @@ print(xtable(as.data.frame(actmon_mean_steps)),type="html")
 ```
 
 <!-- html table generated in R 3.1.1 by xtable 1.7-4 package -->
-<!-- Sun Dec 14 12:50:51 2014 -->
+<!-- Sun Dec 14 13:02:36 2014 -->
 <table border=1>
 <tr> <th>  </th> <th> date </th> <th> mean_steps </th>  </tr>
   <tr> <td align="right"> 1 </td> <td> 2012-10-01 </td> <td align="right"> 37.38 </td> </tr>
@@ -365,7 +381,7 @@ print(xtable(as.data.frame(actmon_median_steps)),type="html")
 ```
 
 <!-- html table generated in R 3.1.1 by xtable 1.7-4 package -->
-<!-- Sun Dec 14 12:50:51 2014 -->
+<!-- Sun Dec 14 13:02:36 2014 -->
 <table border=1>
 <tr> <th>  </th> <th> date </th> <th> median_steps </th>  </tr>
   <tr> <td align="right"> 1 </td> <td> 2012-10-01 </td> <td align="right"> 34.11 </td> </tr>
@@ -540,4 +556,4 @@ ggplot(actmon_mean_steps_interval, aes(x=rowid, y=mean_steps)) + geom_line() + f
   scale_x_discrete(breaks=tics,labels=actmon_mean_steps_interval[tics,]$labels)
 ```
 
-![plot of chunk unnamed-chunk-14](figure/unnamed-chunk-14.png) 
+![plot of chunk unnamed-chunk-15](figure/unnamed-chunk-15.png) 

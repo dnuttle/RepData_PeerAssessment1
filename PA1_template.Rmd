@@ -49,6 +49,8 @@ print(xtable(as.data.frame(actmon_median_steps)),type="html")
 
 ### What Is the Average Daily Activity Pattern?
 
+#### 1. Make a time series plot of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days
+
 ```{r echo=TRUE}
 actmon_complete <- actmon[complete.cases(actmon),]
 actmon_interval <- group_by(actmon_complete, interval)
@@ -62,6 +64,12 @@ plot(actmon_interval$rowid, actmon_interval$mean_steps, type="l",
 tics <- seq(1, 288, by=12)
 axis(side=1,at=actmon_interval[tics,]$rowid,
   labels=actmon_interval[tics,]$labels)
+```
+
+#### Which 5-minute interval, on average across all days in the dataset, contains the maximum number of steps?
+
+```{r}
+actmon_interval[actmon_interval$mean_steps == max(actmon_interval$mean_steps),]
 ```
 
 ### Imputing Missing Values
